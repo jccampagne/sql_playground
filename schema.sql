@@ -42,7 +42,7 @@ select * from property_name;
 
 --create view prods as
 
-select
+create or replace view pv as select
 p.id as product_id,
 p.name as product_name,
 pn.name as property_name,
@@ -51,3 +51,24 @@ from product p
 join property_value pv on pv.product_id_fk = p.id
 join property_name pn on pv.property_name_id_fk = pn.id
 ;
+
+--drop function  function_insert_pv();
+
+create or replace function function_insert_pv()
+returns trigger
+as
+$_$
+    begin
+    raise notice 'called';
+    end
+$_$
+language plpgsql
+;
+
+
+drop trigger insert_pv on pv;
+
+create trigger insert_pv
+INSTEAD OF insert on pv
+for each row
+execute function function_insert_pv();
