@@ -1,5 +1,5 @@
 drop table property_value cascade;
-drop table property_name cascade;
+drop table property cascade;
 drop table product cascade;
 
 create table if not exists product(
@@ -8,16 +8,16 @@ create table if not exists product(
 );
 
 
-create table property_name(
+create table property(
     id          serial      primary key,
     name        text        unique not null
 );
 
 create table property_value(
-    product_id_fk           serial      references product(id),
-    property_name_id_fk     serial      references property_name(id),
-    value                   text        not null,
-    unique (product_id_fk, property_name_id_fk)
+    product_id_fk      serial   references product(id),
+    property_id_fk     serial   references property(id),
+    value              text     not null,
+    unique (product_id_fk, property_id_fk)
 )
 ;
 
@@ -27,7 +27,7 @@ insert into product(name) values
 ('product_2');
 ;
 
-insert into property_name(name) values
+insert into property(name) values
 ('color'),
 ('weight')
 ;
@@ -38,19 +38,19 @@ insert into property_value values
 ;
 
 
-select * from property_name;
+select * from property;
 
 --create view prods as
 
 create or replace view pv
 as select
-    p.id as product_id,
-    p.name as product_name,
-    pn.name as property_name,
-    pv.value as property_value
+    p.id        as product_id,
+    p.name      as product_name,
+    pn.name     as property_name,
+    pv.value    as property_value
 from product p
-join property_value pv on pv.product_id_fk       = p.id
-join property_name  pn on pv.property_name_id_fk = pn.id
+join property_value pv on pv.product_id_fk  = p.id
+join property_name  pn on pv.property_id_fk = pn.id
 ;
 
 --drop function  function_insert_pv();
@@ -64,7 +64,7 @@ declare
 begin
     raise notice 'it is to_op=%, new=%', tg_op, new;
 
-    select id into my_property_id from property_name where name = new.property_name;
+    select id into my_property_id from property where name = new.property_name;
     raise notice 'my_property_id = %', my_property_id;
 
     if my_property_id is null then
@@ -76,7 +76,7 @@ begin
     raise notice 'my_product_id = %', my_product_id;
 
 
-    insert into property_value(product_id_fk, property_name_id_fk, value)
+    insert into property_value(product_id_fk, property_id_fk, value)
     values (new.product_id, my_property_id, new.property_value);
 
     GET DIAGNOSTICS my_pv_id = ROW_COUNT;
