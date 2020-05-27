@@ -3,14 +3,14 @@ drop table property cascade;
 drop table product cascade;
 
 create table if not exists product(
-    id          serial      primary key,
-    name        text        not null unique
+    id      serial  primary key,
+    name    text    not null unique
 );
 
 
 create table property(
-    id          serial      primary key,
-    name        text        unique not null
+    id      serial  primary key,
+    name    text    unique not null
 );
 
 create table property_value(
@@ -23,24 +23,18 @@ create table property_value(
 
 
 insert into product(name) values
-('product_1'),
-('product_2');
+('apple'),
+('banana'),
+('citrus')
 ;
+
 
 insert into property(name) values
 ('color'),
-('weight')
+('weight'),
+('shape')
 ;
 
-insert into property_value values
-(1, 1, 'red'),
-(2, 1, 'blue')
-;
-
-
-select * from property;
-
---create view prods as
 
 create or replace view pv
 as select
@@ -52,6 +46,7 @@ from product p
 join property_value pv on pv.product_id_fk  = p.id
 join property_name  pn on pv.property_id_fk = pn.id
 ;
+
 
 --drop function  function_insert_pv();
 create or replace function function_insert_pv()
@@ -71,16 +66,14 @@ begin
         raise exception 'not such property "%"', new.property_name;
     end if;
 
-    raise notice 'inserting into product(%)', new.product_name;
-    insert into product(name) values(new.product_name) returning id into my_product_id;
-    raise notice 'my_product_id = %', my_product_id;
-
+    raise notice 'looking into product for %', new.product_name;
+    select id into my_product_id from product p where p.name = new.product_name;
+    raise notice 'found product "%" with id "%"', new.product_name, my_product_id;
 
     insert into property_value(product_id_fk, property_id_fk, value)
-    values (new.product_id, my_property_id, new.property_value);
+    values (my_product_id, my_property_id, new.property_value);
 
     GET DIAGNOSTICS my_pv_id = ROW_COUNT;
-
     raise notice 'inserted %', my_pv_id;
 
     return null;
@@ -89,19 +82,21 @@ $_$
 language plpgsql
 ;
 
+
 -- create trigger
-drop trigger insert_pv on pv;
+--drop trigger insert_pv on pv;
 
 create trigger insert_pv
-INSTEAD OF insert on pv
+instead of insert on pv
 for each row
 execute function function_insert_pv();
 
+
 -- this will insert
-insert into pv values(3, 'product_3', 'color', 'blue');
+insert into pv(product_name, property_name, property_value) values('apple', 'color', 'red');
 -- this will error - duplicate entry
-insert into pv values(3, 'product_3', 'color', 'blue');
+insert into pv(product_name, property_name, property_value) values('banana', 'color', 'yellow');
 
 
 -- this will error - bad property name
-insert into pv values(3, 'product_3', 'colordded', 'blue');
+insert into pv(product_name, property_name, property_value) values('product_3', 'colordded', 'blue');
